@@ -52,6 +52,7 @@ def create_commands(session, num_workers, remotes, env_id, logdir, shell='bash',
                     mode='tmux', visualise=False, envWrap=False, designHead=None,
                     unsup=None, noReward=False, noLifeReward=False, psPort=12222,
                     delay=0, savio=False, pretrain=None):
+
     # for launching the TF workers and for launching tensorboard
     py_cmd = 'python' if savio else sys.executable
     base_cmd = [
@@ -98,9 +99,12 @@ def create_commands(session, num_workers, remotes, env_id, logdir, shell='bash',
 
     windows = [v[0] for v in cmds_map]
 
+    # initialize notes and cmds
     notes = []
     cmds = [
+        # make parent directory
         "mkdir -p {}".format(logdir),
+        # add an executable command to the cmd.sh file
         "echo {} {} > {}/cmd.sh".format(sys.executable, ' '.join([shlex_quote(arg) for arg in sys.argv if arg != '-n']), logdir),
     ]
     if mode == 'nohup' or mode == 'child':
@@ -115,8 +119,10 @@ def create_commands(session, num_workers, remotes, env_id, logdir, shell='bash',
 
     if mode == 'tmux':
         cmds += [
-        "kill -9 $( lsof -i:12345 -t ) > /dev/null 2>&1",  # kill any process using tensorboard's port
-        "kill -9 $( lsof -i:{}-{} -t ) > /dev/null 2>&1".format(psPort, num_workers+psPort), # kill any processes using ps / worker ports
+        # kill any process using tensorboard's port
+        "kill -9 $( lsof -i:12345 -t ) > /dev/null 2>&1",  
+        # kill any processes using ps / worker ports
+        "kill -9 $( lsof -i:{}-{} -t ) > /dev/null 2>&1".format(psPort, num_workers+psPort), 
         "tmux kill-session -t {}".format(session),
         "tmux new-session -s {} -n {} -d {}".format(session, windows[0], shell)
         ]
@@ -130,6 +136,8 @@ def create_commands(session, num_workers, remotes, env_id, logdir, shell='bash',
 
 
 def run():
+
+    # arguments handling
     args = parser.parse_args()
     if args.default:
         args.envWrap = True
@@ -142,23 +150,33 @@ def run():
     delay = 220*args.expId if 'doom' in args.env_id.lower() or 'labyrinth' in args.env_id.lower() else 5*args.expId
     delay = 6*delay if 'mario' in args.env_id else delay
 
+    # create cmds and notes 
     cmds, notes = create_commands(args.expName, args.num_workers, args.remotes, args.env_id,
                                     args.log_dir, mode=args.mode, visualise=args.visualise,
                                     envWrap=args.envWrap, designHead=args.designHead,
                                     unsup=args.unsup, noReward=args.noReward,
                                     noLifeReward=args.noLifeReward, psPort=psPort,
                                     delay=delay, savio=args.savio, pretrain=args.pretrain)
-    if args.dry_run:
-        print("Dry-run mode due to -n flag, otherwise the following commands would be executed:")
-    else:
-        print("Executing the following commands:")
+
+    # display the commands and notes
+    print("Here are the commands:")
     print("\n".join(cmds))
     print("")
-    if not args.dry_run:
+
+    print("Here are the notes:")
+    print('\n'.join(notes))
+
+    # perform actions based on dry run argument settings
+    if args.dry_run:
+        print("Dry-run mode activated (due to -n flag): commands are not executed. Goodbye.")
+    else:
+        print("Executing the commands...")
+        # reset the TMUX environment variables 
         if args.mode == "tmux":
             os.environ["TMUX"] = ""
+        # execute the cmds    
         os.system("\n".join(cmds))
-    print('\n'.join(notes))
+
 
 
 if __name__ == "__main__":
