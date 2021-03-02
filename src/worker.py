@@ -59,7 +59,7 @@ def run(args, server):
         variables_to_restore = [v for v in tf.trainable_variables() if not v.name.startswith("local")]
         pretrain_saver = FastSaver(variables_to_restore)
 
-    # step7: logging all trainable parameters to logger (TODO: figure out where this goes)
+    # step7: logging all trainable parameters to logger (it goes to the console terminal output)
     var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, tf.get_variable_scope().name)
     logger.info('Trainable vars:')
     for v in var_list:
@@ -92,7 +92,7 @@ def run(args, server):
     # step11: creates a tensorflow train supervisor object
     #         here is more information about train supervisor in tensorflow:
     #         https://haosdent.gitbooks.io/tensorflow-document/content/how_tos/supervisor/
-    sv = tf.train.Supervisor(is_chief=(args.task == 0),  # (TODO: figure out what this does)
+    sv = tf.train.Supervisor(is_chief=(args.task == 0),  # chief is in charge of initialization, checkpoints, etc...
                              logdir=logdir,
                              saver=saver,
                              summary_op=None,
@@ -113,7 +113,7 @@ def run(args, server):
     # step12: runs the tensorflow train supervisor
     with sv.managed_session(server.target, config=config) as sess, sess.as_default():
         
-        # step12-1: starts running the train supervisor (TODO: figure out what does sync do)
+        # step12-1: starts running the train supervisor 
         sess.run(trainer.sync)   # copy weights from the parameter server to the local model
                                  # this is a workaround for FailedPreconditionError. See: https://github.com/openai/universe-starter-agent/issues/44 and 31
             
