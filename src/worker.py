@@ -114,8 +114,8 @@ def run(args, server):
     with sv.managed_session(server.target, config=config) as sess, sess.as_default():
         
         # step12-1: starts running the train supervisor (TODO: figure out what does sync do)
-        sess.run(trainer.sync)   # workaround for FailedPreconditionError
-                                 # # see: https://github.com/openai/universe-starter-agent/issues/44 and 31
+        sess.run(trainer.sync)   # copy weights from the parameter server to the local model
+                                 # this is a workaround for FailedPreconditionError. See: https://github.com/openai/universe-starter-agent/issues/44 and 31
             
         # step12-2: starts the trainer and takes the first training step
         trainer.start(sess, summary_writer)
